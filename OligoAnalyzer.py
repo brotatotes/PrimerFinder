@@ -3,7 +3,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
 
 class OligoAnalyzer(object):
     def __init__(self):
@@ -12,6 +11,7 @@ class OligoAnalyzer(object):
         self.browser = webdriver.Chrome(self.chromedriver_location)
         self.browser.get(self.oligo_analyzer_link)
 
+        self.tries = 10000
         self.temperature_dict = {}
 
     def analyze_temp(self, DNA_string):
@@ -29,14 +29,19 @@ class OligoAnalyzer(object):
 
         temp = None
         temp_val = None
+        t = 0
 
-        while (not temp or not temp_val):
+        while t < self.tries and (not temp or not temp_val):
             try:
                 temp = WebDriverWait(self.browser, 10).until(EC.presence_of_element_located((By.XPATH, "//*[@id='OAResults']/div/div[1]/div[3]/div/div/table/tbody/tr[5]/td[2]/span")))
                 temp_text = temp.text
                 temp_val = float(temp_text[:temp_text.find(' ºC')])
             except Exception:
                 temp_val = None
+                t += 1
+
+        if t >= self.tries:
+            raise TimeoutError()
 
         self.temperature_dict[DNA_string] = temp_val
         return temp_val
@@ -57,7 +62,18 @@ class OligoAnalyzer(object):
 if __name__ == "__main__":
     import random
 
+    random32 = True
+    repeatedString = False
+
     oa = OligoAnalyzer()
     bases = ['A','C','G','T']
-    for _ in range(10):
-        print(oa.analyze_temp("".join([random.choice(bases) for _ in range(random.randint(32,64))])))
+    
+    if random32:
+        for _ in range(10):
+            print(oa.analyze_temp("".join([random.choice(bases) for _ in range(random.randint(32,64))])))
+
+    if repeatedString:
+        s = "".join([random.choice(bases) for _ in range(256)])
+        print(oa.analyze_temp(s))
+        print(oa.analyze_temp(s))
+        print(oa.analyze_temp(s))
