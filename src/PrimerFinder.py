@@ -1,4 +1,4 @@
-from OligoAnalyzer import OligoAnalyzer
+from src.OligoAnalyzer import OligoAnalyzer
 
 class PrimerFinder(object):
     def __init__(self, DNA_string, dnaL = 100, pL = 40):
