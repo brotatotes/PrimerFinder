@@ -8,7 +8,7 @@ class PrimerFinder(object):
         # pL : int
         self.MIN_DNA_LENGTH = dnaL
         self.PRIMER_START_LENGTH = pL
-        self.DNA = DNA_string
+        self.DNA = DNA_string.upper()
         self.length = len(self.DNA)
         if (self.length < self.MIN_DNA_LENGTH):
             raise Exception("DNA strand with " + str(self.length) + " base pairs is too short")
@@ -16,7 +16,7 @@ class PrimerFinder(object):
         self.bases = {'A':'T', 'T':'A', 'C':'G', 'G':'C'}
 
         # store DNA complement TODO: is this still useful?
-        self.DNAcomp = [self.bases[c] for c in self.DNA]
+        self.DNAcomp = "".join([self.bases[c] for c in self.DNA])
 
         # initialize the insert:
         self.start = None
@@ -45,22 +45,16 @@ class PrimerFinder(object):
         # setup FWD for insert:
         head = PrimerPart([b, c], PrimerType.HEAD)
         tail = PrimerPart([a, b], PrimerType.TAIL)
-        insert_fwd = Primer(head, tail, PrimerDirection.FWD)
+        insert_fwd = Primer([b, c], [a, b], PrimerDirection.FWD)
 
         # setup REV for insert:
-        head = PrimerPart([d, e], PrimerType.HEAD)
-        tail = PrimerPart([e, f], PrimerType.TAIL)
-        insert_rev = Primer(head, tail, PrimerDirection.REV)
+        insert_rev = Primer([d, e], [e, f], PrimerDirection.REV)
 
         # setup FWD for backbone:
-        head = PrimerPart([e, f], PrimerType.HEAD)
-        tail = PrimerPart([d, e], PrimerType.TAIL)
-        backbone_fwd = Primer(head, tail, PrimerDirection.FWD)
+        backbone_fwd = Primer([e, f], [d, e], PrimerDirection.FWD)
 
         # setup REV for backbone:
-        head = PrimerPart([a, b], PrimerType.HEAD)
-        tail = PrimerPair([b, c], PrimerType.TAIL)
-        backbone_rev = Primer(head, tail, PrimerDirection.REV)
+        backbone_rev = Primer([a, b], [b, c], PrimerDirection.REV)
 
         # organize all primers
         self.insert_primers = PrimerPair(insert_fwd, insert_rev)
@@ -78,11 +72,51 @@ class PrimerFinder(object):
 
         # should only be called from 'refine_primers'
 
-        # TODO: for testing purposes ONLY - REMOVE!
+        # TODO: vv For testing purposes ONLY - REMOVE!
         self.init_primers()
         self.init_analyzer()
+        # TODO: ^^ For testing purposes ONLY - REMOVE!
 
-        
+        fwd_strand = self.strand(primer_pair.fwd.indices)
+        fwd_anneal = self.analyzer.analyze_temp(self.strand(primer_pair.fwd.head.seq))
+        fwd_whole = self.analyzer.analyze_temp(fwd_strand)
+
+        rev_strand = self.comp(primer_pair.rev.indices)
+        rev_anneal = self.analyzer.analyze_temp(self.comp(primer_pair.rev.head.seq))
+        rev_whole = self.analyzer.analyze_temp(rev_strand)
+
+        # Total primer length MUST NOT exceed 60 bp
+        valid_length = len(fwd_strand) <= 60 and len(rev_strand) <= 60
+
+        # T anneal of FWD must be 3°C around T anneal of REV
+        valid_anneal = abs(fwd_anneal - rev_anneal) <= 3
+
+        # likewise, T whole of FWD must be 3°C around T whole of REV
+        valid_whole = abs(fwd_whole - rev_whole) <= 3
+
+        # Temperatures MUST NOT exceed 72°C
+        valid_temp = all([t <= 72 for t in (fwd_anneal, fwd_whole, rev_anneal, rev_whole)])
+
+        # Keep track of the “GC content” of the ENTIRE PIECE! Should be between 40%-60%!
+        valid_gc = 0.4 <= sum([s.count('G') + s.count('C') for s in (fwd_strand, rev_strand)]) / (len(fwd_strand) + len(rev_strand)) <= 0.6
+
+        # TODO: needs to return what failed so parent function know's what to do
+        return all((valid_length, valid_anneal, valid_whole, valid_temp, valid_gc))
+
+
+    def strand(self, indices):
+        return self.DNA[indices[0]:indices[1]]
+
+    def comp(self, indices):
+        return self.DNAcomp[indices[0]:indices[1]]
+
+    def __del__(self):
+        if not self.analyzer is None:
+            del self.analyzer
+
+
+
+
 
 if __name__ == "__main__":
     import random
@@ -95,3 +129,4 @@ if __name__ == "__main__":
     PF.init_primers()
     print(PF.insert_primers)
     print(PF.backbone_primers)
+    PF.validate_primer_pair(PF.insert_primers)

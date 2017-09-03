@@ -15,7 +15,6 @@ class OligoAnalyzer(object):
         self.temperature_dict = {}
 
     def analyze_temp(self, DNA_string):
-        print(DNA_string)
 
         if DNA_string in self.temperature_dict:
             return self.temperature_dict[DNA_string]
