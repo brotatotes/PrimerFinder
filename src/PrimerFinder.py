@@ -73,23 +73,16 @@ class PrimerFinder(object):
         self.init_analyzer()
 
 
+    def validate_primer_pair(self, primer_pair):
+        # primer_pair : PrimerPair
 
+        # should only be called from 'refine_primers'
 
-# class Primer(object):
-#     def __init__(self, start, end, strand, rev):
-#         self.start = start
-#         self.end = end
-#         self.strand = strand
-#         self.rev = rev
-#         if rev:
-#             self.tail = (self.start + , self.end)
-#             self.head = self.start
-#         else:
-#             self.tail = self.start
-#             self.head = self.end
-#
-#     def __str__(self):
-#         return "Primer:" + "\ntype:\t" + ("REV" if self.rev else "FWD") + "\nstart:\t" + str(self.start) + "\nend:\t" + str(self.end) + "\nhead:\t" + str(self.head) + "\ntail:\t" + str(self.tail) + "\nsequence:\n " + str(self.strand) + "\n"
+        # TODO: for testing purposes ONLY - REMOVE!
+        self.init_primers()
+        self.init_analyzer()
+
+        
 
 if __name__ == "__main__":
     import random
